@@ -8,6 +8,7 @@ from app.core.auth import get_current_user
 
 router = APIRouter()
 
+use_auth = False
 
 @router.get("/")
 async def index() -> dict[str, str]:
@@ -22,7 +23,9 @@ async def view_a(
     num: int,
     auth: Depends = Depends(get_current_user),
 ) -> dict[str, int]:
-    return main_func_a(num)
+    print(dir(auth))
+    
+    return {'retint': main_func_a(num), 'auth':''}
 
 
 @router.get("/api_b/{num}", tags=["api_b"])

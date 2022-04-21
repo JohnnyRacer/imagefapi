@@ -92,6 +92,8 @@ urllib3==1.26.9
 wheel==0.37.1
     # via pip-tools
 
+build==0.7.0
+
 # The following packages are considered to be unsafe in a requirements file:
 # pip
 # setuptools

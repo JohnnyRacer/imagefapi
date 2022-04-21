@@ -46,7 +46,8 @@ class ImageUploadResponse(BaseModel):
 @router.post("/b64upload",tags=['upload_images'],response_model=ImageUploadResponse)
 async def save_posted_b64img(
     b64_image: str = Form(...),
-    user_uuid: Optional[str] = Form(...)
+    user_uuid: Optional[str] = Form(...),
+    output_ext:str = 'png'
 ) -> dict[str, Any]:
     img_chars = len(b64_image)
     if img_chars > 14000000:
@@ -56,26 +57,41 @@ async def save_posted_b64img(
         )
     try:
         raw_imhash = sha256(b64_image.encode('utf-8')).hexdigest()
-        img_thash  = raw_imhash[-32:]
-        img_svfp = f'{IMG_SAVE_DIR}/{img_thash}.png' if bool(user_uuid) else f'{IMG_CACHE_DIR}/{img_thash}.png'
+        img_hash  = raw_imhash[-32:]
+        img_svfp = f'{IMG_SAVE_DIR}/{img_hash}.{output_ext}' if bool(user_uuid) else f'{IMG_CACHE_DIR}/{img_hash}.{output_ext}'
         ImageHandler.dump_pil(b64_image, image_path=img_svfp ) #Dumps 
         status = 'success'
     except Exception as exp:
         status = f'Failed to save due to {exp}'
-        img_thash = ''
+        img_hash = ''
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Unable to parse image due to exception : {exp} ")
 
-    return {'message':status, 'filename':img_svfp, 'image_size': img_chars, 'img_hash':raw_imhash }
+    return {'message':status, 'filename': f'{img_hash}.{output_ext}', 'image_size': img_chars, 'img_hash':raw_imhash }
 
 @router.post("/upload",tags=['upload_images'],response_model=ImageUploadResponse)
 async def save_posted_binimg(
     bin_image: UploadFile = File(...),
     user_uuid: Optional[str] = Form(...)
 ):
+    try:
+        print(user_uuid)
+        print(type(user_uuid))
+        filename = f"{IMG_SAVE_DIR if user_uuid is not None else IMG_CACHE_DIR}/{bin_image.filename}"
+        #with open(filename, 'wb') as wfb:
+        content = await bin_image.read()
+        raw_imhash = sha256(content).hexdigest()
+        img_size = len(content)
+    except Exception as exp:
+        status = f'Failed to save due to {exp}'
+        raw_imhash = ''
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Unable to parse image due to exception : {exp} ")
+    return {'message':status, 'filename':bin_image.filename, 'image_size': img_size, 'img_hash':raw_imhash }
+        #wfb.write(content)
 
-filename = f" "
 
 """
 @router.post("/url",tags=['pull_image'])

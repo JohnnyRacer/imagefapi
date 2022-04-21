@@ -16,3 +16,8 @@ python-dotenv
 python-multipart
 uvicorn
 gunicorn
+scikit-image
+pillow
+numpy
+pymongo
+redis
