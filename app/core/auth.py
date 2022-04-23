@@ -113,43 +113,49 @@ class VerifyToken(BaseModel):
 
 
 @router.post("/verify_token")
-async def verify_token(
+async def verf_token(
     token_obj: VerifyToken = Body(...)
 ):
 
 
-    credentials_exception = HTTPException(
-        status_code=HTTPStatus.UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    user, ip = await get_current_user(token_obj.token)
 
-    try:
-        payload = jwt.decode(
-            token_obj.token,
-            jwt_pub_key,
-            algorithms=[config.API_ALGORITHM],
+    """
+
+        credentials_exception = HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        print(payload)
-        username = payload.get("sub")
-        ip = payload.get("ip")
-        print(f"Acces IP is : {ip} ")
-        if username is None:
+
+        try:
+            payload = jwt.decode(
+                token_obj.token,
+                jwt_pub_key,
+                algorithms=[config.API_ALGORITHM],
+            )
+            print(payload)
+            username = payload.get("sub")
+            ip = payload.get("ip")
+            print(f"Acces IP is : {ip} ")
+            if username is None:
+                raise credentials_exception
+            token_data = TokenData(username=username)
+
+        except PyJWTError:
             raise credentials_exception
-        token_data = TokenData(username=username)
 
-    except PyJWTError:
-        raise credentials_exception
+        
 
-    user = get_user(fake_users_db, username=token_data.username)
-
-    if user is None:
-        raise credentials_exception
-    return {"username":user.username, "token_type":token_obj.token_type}
+        if user is None:
+            raise credentials_exception
+    """
+    #print(f"Access IP : {access_ip} ")
+    return {"username":user.username , "token_type":token_obj.token_type, "access_ip":ip}
 
 
 
-async def get_current_user(token: VerifyToken = Form(...)) -> UserInDB:
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     credentials_exception = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -163,7 +169,7 @@ async def get_current_user(token: VerifyToken = Form(...)) -> UserInDB:
             algorithms=[config.API_ALGORITHM],
         )
         username = payload.get("sub")
-
+        ip = payload.get('auth_ip')
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
@@ -175,7 +181,7 @@ async def get_current_user(token: VerifyToken = Form(...)) -> UserInDB:
 
     if user is None:
         raise credentials_exception
-    return user
+    return user, ip
 
 
 @router.post("/token", response_model=Token)
@@ -184,8 +190,6 @@ async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     token_expiry:int=0
 ) -> dict[str, Any]:
-    
-    print( request.client.host)
     user = authenticate_user(
         fake_users_db,
         form_data.username,
@@ -203,11 +207,12 @@ async def login_for_access_token(
         seconds=config.API_ACCESS_TOKEN_EXPIRE_MINUTES if token_expiry is 0 else token_expiry,
     )
     
-    print(type(form_data.scopes))
+    not bool(int(config.DEBUG)) or print(type(form_data.scopes)) 
     print(type(form_data.client_id))
-    
+    ip = request.client.host
+    print(f"Client ip is {ip} ")
     access_token = create_access_token(
-        data={"sub": user.username},  # type: ignore
+        data={"sub": user.username, 'auth_ip':request.client.host},  # type: ignore
         expires_delta=access_token_expires,
     )
-    return {"access_token": access_token, "token_type": "bearer", "authed_scopes":form_data.scopes}
+    return {"access_token": access_token,"token_type": "bearer", "authed_scopes":form_data.scopes}

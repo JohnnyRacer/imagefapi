@@ -8,6 +8,7 @@
 
 # https://github.com/jazzband/pip-tools
 
+dhash
 bcrypt
 fastapi
 passlib
@@ -21,3 +22,4 @@ pillow
 numpy
 pymongo
 redis
+dhash
