@@ -8,6 +8,8 @@ ENV PYTHONBUFFERED 1
 # Set working directory.
 WORKDIR /code
 
+RUN ls /code
+
 # Copy dependencies.
 COPY requirements.txt /code/
 
