@@ -18,6 +18,11 @@ setup(
     version="0.0.1",
     author="JohnnyRacer",
     license='MIT',
+    classifiers=[
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    ],
     description="A simple FastAPI based image endpoint solution.",
     long_description=long_description,
     long_description_content_type="text/markdown",

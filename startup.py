@@ -14,7 +14,9 @@ os.path.isdir(IMG_CACHE_DIR) or os.makedirs(IMG_CACHE_DIR,exist_ok=True)
 os.path.isdir(IMG_SAVE_DIR) or os.makedirs(IMG_SAVE_DIR,exist_ok=True)
 os.environ["API_AUTH_CFG"] = str(int(not args.noauth))
 
-    
+
+def main():
+    uvicorn.run('app.main:app', proxy_headers=True,forwarded_allow_ips='*',port=args.port ,reload= not args.noreload)
 
 if __name__ == '__main__':
-    uvicorn.run('app.main:app', proxy_headers=True,forwarded_allow_ips='*',port=args.port ,reload= not args.noreload)
+   main()
