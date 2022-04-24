@@ -8,8 +8,6 @@ ENV PYTHONBUFFERED 1
 # Set working directory.
 WORKDIR /code
 
-RUN ls /code
-
 # Copy dependencies.
 COPY requirements.txt /code/
 
@@ -21,5 +19,5 @@ COPY . /code/
 
 EXPOSE 5000
 
-ENTRYPOINT [ "gunicorn", "app.main:app", "--workers", "2", "--worker-class", \
+ENTRYPOINT [ "gunicorn", "startup:main", "--workers", "2", "--worker-class", \
         "uvicorn.workers.UvicornWorker",  "-b", "0.0.0.0:5000" ]
