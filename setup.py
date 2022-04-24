@@ -1,11 +1,18 @@
 from setuptools import setup
-
+import os
+import shutil
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+if not os.path.isdir('cli_src'):
+    os.makedirs('cli_src', exist_ok=True)
 
-
+try:
+    shutil.copytree('app', 'cli_src/app')
+    shutil.copy('startup.py','cli_src/startup.py')
+except:
+    pass
 setup(
     name="imagefapi",
     version="0.0.1",
