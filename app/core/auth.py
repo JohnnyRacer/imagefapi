@@ -67,7 +67,7 @@ def authenticate_user(
     fake_db: dict[str, dict[str, str]],
     username: str,
     password: str,
-) -> Union[bool, UserInDB]:
+) -> 'Union[bool, UserInDB]':
 
     user = get_user(fake_db, username)
     if not user:
@@ -85,9 +85,9 @@ def read_pemk(key_fp:str,ret_bytes:bool=True):
 
 
 
-jwt_prv_key = read_pemk(f'{config.JWT_KEY_DIR}/jwt-key')
+jwt_prv_key = read_pemk(f'{config.JWT_KEY_DIR}/{config.JWT_KEY_NAME}')
 
-jwt_pub_key = read_pemk(f'{config.JWT_KEY_DIR}/jwt-key.pub' ,ret_bytes=False)
+jwt_pub_key = read_pemk(f'{config.JWT_KEY_DIR}/{config.JWT_KEY_NAME}.pub' ,ret_bytes=False)
 
 def create_access_token(data: dict, expires_delta: timedelta = None, access_ip: str = None) -> bytes:
     to_encode = data.copy()
@@ -109,58 +109,26 @@ def create_access_token(data: dict, expires_delta: timedelta = None, access_ip: 
 
 class VerifyToken(BaseModel):
     token:str
-    token_type:str    
+    token_type:str
 
-
-
-
-@router.post("/verify_token")
+@router.post("/verify_token",tags=["auth"])
 async def verf_token(
+    request:Request,
     token_obj: VerifyToken = Body(...)
-):
+) -> VerifyToken:
+    user = await get_current_user(request.client.host,token_obj.token) # Client's origin IP here
+    return {"username":user.username , "token_type":token_obj.token_type}
 
-
-    user, ip = await get_current_user(token_obj.token)
-
-    """
-
-        credentials_exception = HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-        try:
-            payload = jwt.decode(
-                token_obj.token,
-                jwt_pub_key,
-                algorithms=[config.API_ALGORITHM],
-            )
-            print(payload)
-            username = payload.get("sub")
-            ip = payload.get("ip")
-            print(f"Acces IP is : {ip} ")
-            if username is None:
-                raise credentials_exception
-            token_data = TokenData(username=username)
-
-        except PyJWTError:
-            raise credentials_exception
-
-        
-
-        if user is None:
-            raise credentials_exception
-    """
-    #print(f"Access IP : {access_ip} ")
-    return {"username":user.username , "token_type":token_obj.token_type, "access_ip":ip}
-
-
-
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
+async def get_current_user(req_ip: str,token: str = Depends(oauth2_scheme)) -> UserInDB:
     credentials_exception = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
         detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    ip_exception = HTTPException(
+        status_code=HTTPStatus.UNAUTHORIZED,
+        detail="Invalid token for this request origin.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -171,9 +139,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
             algorithms=[config.API_ALGORITHM],
         )
         username = payload.get("sub")
-        ip = payload.get('auth_ip')
+        token_ip = payload.get('auth_ip')
         if username is None:
             raise credentials_exception
+        if config.ENFORCE_TOKEN_IP:
+            if token_ip != req_ip:
+                raise ip_exception
         token_data = TokenData(username=username)
 
     except PyJWTError:
@@ -183,15 +154,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
 
     if user is None:
         raise credentials_exception
-    return user, ip
+    return user
 
 
-@router.post("/token", response_model=Token)
+@router.post("/token", response_model=Token,tags=["auth"])
 async def login_for_access_token(
     request:Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     token_expiry:int=0
-) -> dict[str, Any]:
+) -> 'dict[str, Any]':
     user = authenticate_user(
         fake_users_db,
         form_data.username,

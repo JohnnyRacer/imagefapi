@@ -26,3 +26,9 @@ DEBUG = bool(int(os.environ["DEBUG"]))
 JWT_KEY_DIR = os.environ["JWT_KEY_DIR"]
 
 JWT_KEY_NAME = os.environ["JWT_KEY_NAME"]
+
+MAX_IMG_SIZE = int(os.environ["MAX_IMG_SIZE"]) or 999999999999 # No limit if set to zero.
+
+RETURN_SAVEFP = bool(int(os.environ["RETURN_SAVEFP"]))
+
+ENFORCE_TOKEN_IP = bool(int(os.environ["ENFORCE_TOKEN_IP"]))

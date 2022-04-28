@@ -22,6 +22,8 @@
 - Dynamic in-memory or disk caching of images.
 - Quickly pull images from an URL link or local file on the server.
 
+---
+### **By default images will be saved to directories within /tmp, change the directories in the `.env` file to save to a permanent directory.**
 ## Known issues
 
 Sometimes the version of `cryptography` installed by pip is incompatible with `pyjwt`, and errors out with

@@ -1,18 +1,15 @@
 from __future__ import annotations
-from base64 import b64decode
-from distutils.command.config import config
-
-from fastapi import APIRouter, Depends, File, HTTPException,Form,Body, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException,Form, UploadFile
 from pydantic import BaseModel
 from app.core.auth import get_current_user
-from typing import Any, Optional, Union
+from typing import Optional
 from http import HTTPStatus
-from hashlib import sha256, md5, blake2b,sha384
+from hashlib import sha256
 from app.utils.handler import ImageHandler
-from app.core.config import IMG_CACHE_DIR, IMG_SAVE_DIR,API_AUTH_CFG
+from app.core import config 
+import base64 as b64 
 import io
 from PIL import Image
-
 
 router = APIRouter()
 
@@ -46,17 +43,17 @@ class ImageUploadResponse(BaseModel):
     filename: Optional[str] = None
 
 #Union(Depends, None) =
-@router.post("/b64upload",tags=['upload_images'])
+@router.post("/b64upload",tags=['upload_images'],response_model=ImageUploadResponse)
 async def save_posted_b64img(
     b64_image: str = Form(...),
-    auth= Depends(get_current_user) if bool(int(API_AUTH_CFG)) else None,
+    auth:Depends if bool(int(config.API_AUTH_CFG)) else None = Depends(get_current_user) if bool(int(config.API_AUTH_CFG)) else None,
     output_ext:str = 'png',
     user_uuid: Optional[str] = None,
     save_image: Optional[bool]=False,
-    
-) -> dict[str, Any]:
+
+) -> ImageUploadResponse:
     img_chars = len(b64_image)
-    if img_chars > 14000000:
+    if img_chars > config.MAX_IMG_SIZE:
         raise HTTPException(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED,
             detail=f"Image exceeds maximum size of 14 megabytes" # Prevent memory overflow attacks on the server by crafted large malicious files
@@ -67,10 +64,9 @@ async def save_posted_b64img(
         img_hash  = raw_imhash[-32:]
         status = "Recieved sucessfully!"
         if save_image:
-
-            filename = f'{IMG_SAVE_DIR}/{img_hash}.{output_ext}' if bool(user_uuid) else f'{IMG_CACHE_DIR}/{img_hash}.{output_ext}'
-            #ImageHandler.dump_pil(Image.open(io.BytesIO(b64decode(b64_image))),img_path=filename)
-            ImageHandler.dump_pil(Image.open(io.BytesIO(b64decode(b64_image))),img_path=filename)
+            filename = f'{config.IMG_SAVE_DIR}/{img_hash}.{output_ext}' if bool(user_uuid) else f'{config.IMG_CACHE_DIR}/{img_hash}.{output_ext}'
+         
+            ImageHandler.dump_pil(Image.open(io.BytesIO(b64.b64decode(b64_image))),img_path=filename)
             status = 'Saved sucessfully!'
     except Exception as exp:
         status = f'Failed to parse image due to {exp}'
@@ -78,23 +74,28 @@ async def save_posted_b64img(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Failed to parse image due to exception : {exp} ")
-
-    return {'message':status,'image_size': img_chars, 'img_hash':raw_imhash, "filename":filename if save_image else f'{img_hash}.{output_ext}' }
+    ret_dict = {'upload_status':status,'image_size': img_chars, 'image_hash':raw_imhash}
+    if config.RETURN_SAVEFP:
+         ret_dict["filename"] = filename if save_image else f'{img_hash}.{output_ext}'
+    return ret_dict
     
-@router.post("/upload",tags=['upload_images'],response_model=ImageUploadResponse)
+@router.post("/upload",tags=['upload_images'], response_model=ImageUploadResponse)
 async def save_posted_binimg(
     bin_image: UploadFile = File(...),
-    auth= Depends(get_current_user) if bool(int(API_AUTH_CFG)) else None, # Normally the syntax for requiring auth has a type check of 'Depends', ex. (auth : Depends = Depends(get_current_user)), the type anno needs to removed since it interfereres with setting auth to None 
+    auth: Depends if bool(int(config.API_AUTH_CFG)) else None = Depends(get_current_user) if bool(int(config.API_AUTH_CFG)) else None, # Normally the syntax for requiring auth has a type check of 'Depends', ex. (auth : Depends = Depends(get_current_user)), the type anno needs to removed since it interfereres with setting auth to None 
     user_uuid: Optional[str] = None,
-    save_image: Optional[bool]=False,
-    
-    
-):
+    save_image: Optional[bool]=False,    
+) -> ImageUploadResponse:
     try:
         not config.DEBUG or print(user_uuid)
         not config.DEBUG or print(type(user_uuid))
-        filename = f"{IMG_SAVE_DIR if user_uuid is not None else IMG_CACHE_DIR}/{bin_image.filename}"
+        filename = f"{config.IMG_SAVE_DIR if user_uuid is not None else config.IMG_CACHE_DIR}/{bin_image.filename}"
         content = await bin_image.read()
+        if len(content) > config.MAX_IMG_SIZE:
+            raise HTTPException(
+                status_code=HTTPStatus.METHOD_NOT_ALLOWED,
+                detail=f"Unalbe to parse uploaded due to image size exceeding limit of : {config.MAX_IMG_SIZE} "
+            ) 
         raw_imhash = sha256(content).hexdigest()
         img_size = len(content)
         status = 'Recieved sucessfully!'
@@ -108,4 +109,7 @@ async def save_posted_binimg(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Failed to parse image due to exception : {exp} ")
-    return {'message':status, 'filename':bin_image.filename, 'image_size': img_size, 'img_hash':raw_imhash, "filename":filename if save_image else '' }
+    ret_dict = {'upload_status':status, 'image_size': img_size, 'image_hash':raw_imhash}
+    if config.RETURN_SAVEFP:
+         ret_dict["filename"] = filename if save_image else bin_image.filename
+    return ret_dict 
