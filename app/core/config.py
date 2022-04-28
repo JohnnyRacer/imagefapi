@@ -23,3 +23,5 @@ IMG_SAVE_DIR = os.environ["IMG_SAVE_DIR"]
 IMG_CACHE_DIR = os.environ["IMG_CACHE_DIR"]
 
 DEBUG = os.environ["DEBUG"]
+
+JWT_KEY_DIR = os.environ["JWT_KEY_DIR"]

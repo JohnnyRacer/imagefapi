@@ -83,9 +83,11 @@ def read_pemk(key_fp:str,ret_bytes:bool=True):
         return key.encode()
     return key
 
-jwt_prv_key = read_pemk('test_keys/jwt-key')
 
-jwt_pub_key = read_pemk('test_keys/jwt-key.pub' ,ret_bytes=False)
+
+jwt_prv_key = read_pemk(f'{config.JWT_KEY_DIR}/jwt-key')
+
+jwt_pub_key = read_pemk(f'{config.JWT_KEY_DIR}/jwt-key.pub' ,ret_bytes=False)
 
 def create_access_token(data: dict, expires_delta: timedelta = None, access_ip: str = None) -> bytes:
     to_encode = data.copy()
@@ -204,7 +206,7 @@ async def login_for_access_token(
         )
 
     access_token_expires = timedelta(
-        seconds=config.API_ACCESS_TOKEN_EXPIRE_MINUTES if token_expiry is 0 else token_expiry,
+        seconds=config.API_ACCESS_TOKEN_EXPIRE_MINUTES if token_expiry == 0 else token_expiry,
     )
     
     not bool(int(config.DEBUG)) or print(type(form_data.scopes)) 

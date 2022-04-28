@@ -22,7 +22,17 @@
 - Dynamic in-memory or disk caching of images.
 - Quickly pull images from an URL link or local file on the server.
 
+## Known issues
+
+Sometimes the version of `cryptography` installed by pip is incompatible with `pyjwt`, and errors out with
+```python
+File "/home/$USER/miniconda3/envs/tauth/lib/python3.9/site-packages/jwt/algorithms.py", line 262, in prepare_key
+key = load_pem_private_key(key, password=None)
+TypeError: load_pem_private_key() missing 1 required positional argument:'backend'
+```
+To rectify this, try running `pip install --upgrade pyjwt[crypto]` to reinstall jwt requirements.
+
 ## Requirements
 
-
-Based on `fastapi-nano` by rednafi : https://github.com/rednafi/fastapi-nano
+Based on `fastapi-nano` by rednafi : https://github.com/rednafi/
+fastapi-nano
