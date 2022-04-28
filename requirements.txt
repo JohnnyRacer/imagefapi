@@ -4,6 +4,9 @@
 #
 #    pip-compile --no-emit-options --output-file=requirements.txt requirements.in
 #
+
+requests>=2.21.0
+    # via requests
 anyio==3.5.0
     # via starlette
 asgiref==3.5.0
@@ -47,6 +50,8 @@ typing-extensions==4.1.1
 uvicorn==0.17.6
     # via -r requirements.in
 scikit-image==0.19.2
+redis==4.2.2
+    # via redis
 dhash==1.3
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

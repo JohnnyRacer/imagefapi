@@ -20,6 +20,5 @@ gunicorn
 scikit-image
 pillow
 numpy
-pymongo
 redis
 dhash
