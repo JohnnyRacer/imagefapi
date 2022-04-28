@@ -1,5 +1,6 @@
 from __future__ import annotations
 from base64 import b64decode
+from distutils.command.config import config
 
 from fastapi import APIRouter, Depends, File, HTTPException,Form,Body, UploadFile
 from pydantic import BaseModel
@@ -90,8 +91,8 @@ async def save_posted_binimg(
     
 ):
     try:
-        print(user_uuid)
-        print(type(user_uuid))
+        not config.DEBUG or print(user_uuid)
+        not config.DEBUG or print(type(user_uuid))
         filename = f"{IMG_SAVE_DIR if user_uuid is not None else IMG_CACHE_DIR}/{bin_image.filename}"
         content = await bin_image.read()
         raw_imhash = sha256(content).hexdigest()

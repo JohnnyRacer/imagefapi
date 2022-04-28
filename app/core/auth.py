@@ -209,10 +209,10 @@ async def login_for_access_token(
         seconds=config.API_ACCESS_TOKEN_EXPIRE_MINUTES if token_expiry == 0 else token_expiry,
     )
     
-    not bool(int(config.DEBUG)) or print(type(form_data.scopes)) 
-    print(type(form_data.client_id))
+    not config.DEBUG or print(type(form_data.scopes)) 
+    not config.DEBUG or print(type(form_data.client_id))
     ip = request.client.host
-    print(f"Client ip is {ip} ")
+    not config.DEBUG or print(f"Client ip is {ip} ")
     access_token = create_access_token(
         data={"sub": user.username, 'auth_ip':request.client.host},  # type: ignore
         expires_delta=access_token_expires,
