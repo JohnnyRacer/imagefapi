@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv("./.env")
 
-
 API_USERNAME = os.environ["API_USERNAME"]
+
 API_PASSWORD = os.environ["API_PASSWORD"]
 
 # Auth configs.
@@ -14,6 +14,10 @@ API_PASSWORD = os.environ["API_PASSWORD"]
 API_ALGORITHM = os.environ["API_ALGORITHM"]
 
 API_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ["API_ACCESS_TOKEN_EXPIRE_MINUTES"])  # infinity
+
+USE_DB = bool(int(os.environ["USE_DB"]))
+
+MOCK_DB = bool(int(os.environ["MOCK_DB"]))
 
 API_AUTH_CFG = os.environ["API_AUTH_CFG"]
 
@@ -32,3 +36,5 @@ MAX_IMG_SIZE = int(os.environ["MAX_IMG_SIZE"]) or 999999999999 # No limit if set
 RETURN_SAVEFP = bool(int(os.environ["RETURN_SAVEFP"]))
 
 ENFORCE_TOKEN_IP = bool(int(os.environ["ENFORCE_TOKEN_IP"]))
+
+USER_ID_LEN = int(os.environ["USER_ID_LEN"]) if int(os.environ["USER_ID_LEN"]) <= 64 else 64

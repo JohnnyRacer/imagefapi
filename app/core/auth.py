@@ -6,7 +6,7 @@ from typing import Any, Optional, Union
 
 import jwt
 from jwt import PyJWTError
-from fastapi import APIRouter, Body, Depends, Form, HTTPException,Request
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Header,Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from passlib.context import CryptContext
@@ -119,7 +119,7 @@ async def verf_token(
     user = await get_current_user(request.client.host,token_obj.token) # Client's origin IP here
     return {"username":user.username , "token_type":token_obj.token_type}
 
-async def get_current_user(req_ip: str,token: str = Depends(oauth2_scheme)) -> UserInDB:
+async def get_current_user(req:Request, token: str = Depends(oauth2_scheme)) -> UserInDB:
     credentials_exception = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -143,7 +143,9 @@ async def get_current_user(req_ip: str,token: str = Depends(oauth2_scheme)) -> U
         if username is None:
             raise credentials_exception
         if config.ENFORCE_TOKEN_IP:
-            if token_ip != req_ip:
+            if type(req) != str:
+                req = req.client.host
+            if token_ip != req:
                 raise ip_exception
         token_data = TokenData(username=username)
 

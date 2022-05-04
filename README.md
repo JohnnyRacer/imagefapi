@@ -22,6 +22,14 @@
 - Dynamic in-memory or disk caching of images.
 - Quickly pull images from an URL link or local file on the server.
 
+## Security Features
+
+- RSA256 encrypted JWT using asymmetric key encryption instead of the standard symmetric HS256 encryption scheme. **TODO** Add support for ES256 scheme with ECDSA keys for a shorter key length and faster encrypt/decrypt speeds.
+
+- IP verification for JWT to increase the difficulty of sucessfully executing a session hijack from compromised cookies.
+
+-  **TODO** CSRF token implemented via FastAPI middleware.
+
 ---
 ### **By default images will be saved to directories within /tmp, change the directories in the `.env` file to save to a permanent directory.**
 ## Known issues
