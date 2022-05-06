@@ -1,7 +1,8 @@
 from __future__ import annotations
+import os
+import shutil
 from fastapi import APIRouter, Depends, File, HTTPException,Form, UploadFile
 from pydantic import BaseModel
-from app.core.auth import get_current_user
 from typing import Optional
 from http import HTTPStatus
 from hashlib import sha256
@@ -13,60 +14,40 @@ from PIL import Image
 
 router = APIRouter()
 
-class BasicAuthed:
-    user_uuid: str # Unique user identifier
-    username: str # Human friendly username
-    access_token: str  # Using access token provided by jwt to verify, will error out if invalid
-
-class ImageUpload(BaseModel):
-    image_b64: str
-    img_uuid: str
-    img_name: Optional[str] = None
-    checksum: Optional[str] = None
-    
-class ImageURL(BaseModel):
-    image_url: str
-    upload_action: int # Defines what the server should do with the fetched image
-    img_name: Optional[str] = None
-
-class AuthedImageURL(ImageURL, BasicAuthed):
-    user_img_uuid: str
-
-class AuthedImageUpload(ImageUpload, BasicAuthed):
-    user_img_uuid: str
 
 class ImageUploadResponse(BaseModel):
     upload_status:str # Human friendly message
     filename: str 
     image_size:int
     image_hash:str
+    bytes_output:Optional[bytes] = None
     filename: Optional[str] = None
 
 #Union(Depends, None) =
-@router.post("/b64upload",tags=['upload_images'],response_model=ImageUploadResponse)
+#@router.post("/b64upload",tags=["upload_images"],response_model=ImageUploadResponse)
 async def save_posted_b64img(
     b64_image: str = Form(...),
-    auth:Depends if bool(int(config.API_AUTH_CFG)) else None = Depends(get_current_user) if bool(int(config.API_AUTH_CFG)) else None,
-    output_ext:str = 'png',
-    user_uuid: Optional[str] = None,
-    save_image: Optional[bool]=False,
-
+    keep_image:bool = False,
+    save_dir: str= None
 ) -> ImageUploadResponse:
+    output_ext = "png"
     img_chars = len(b64_image)
     if img_chars > config.MAX_IMG_SIZE:
         raise HTTPException(
             status_code=HTTPStatus.METHOD_NOT_ALLOWED,
             detail=f"Image exceeds maximum size of 14 megabytes" # Prevent memory overflow attacks on the server by crafted large malicious files
         )
+    filename = ''
     try:
         b64_image = b64_image if len(b64_image.split(',')) == 1 else b64_image.split(',')[-1]
         raw_imhash = sha256(b64_image.encode('utf-8')).hexdigest()
-        img_hash  = raw_imhash[-32:]
-        status = "Recieved sucessfully!"
-        if save_image:
-            filename = f'{config.IMG_SAVE_DIR}/{img_hash}.{output_ext}' if bool(user_uuid) else f'{config.IMG_CACHE_DIR}/{img_hash}.{output_ext}'
-         
-            ImageHandler.dump_pil(Image.open(io.BytesIO(b64.b64decode(b64_image))),img_path=filename)
+        img_hash  = raw_imhash[-32:]            
+        filename = f"{save_dir}/{img_hash}.{output_ext}" if save_dir is not None and os.path.isdir(save_dir)  else f'{config.IMG_CACHE_DIR}/{img_hash}.{output_ext}' 
+        
+        status = 'Recieved sucessfully!'
+        content = b64.b64decode(b64_image)
+        if keep_image:
+            ImageHandler.dump_pil(Image.open(io.BytesIO(content)),img_path=filename)
             status = 'Saved sucessfully!'
     except Exception as exp:
         status = f'Failed to parse image due to {exp}'
@@ -74,22 +55,17 @@ async def save_posted_b64img(
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Failed to parse image due to exception : {exp} ")
-    ret_dict = {'upload_status':status,'image_size': img_chars, 'image_hash':raw_imhash}
-    if config.RETURN_SAVEFP:
-         ret_dict["filename"] = filename if save_image else f'{img_hash}.{output_ext}'
+    ret_dict = {'upload_status':status,'image_size': img_chars, 'image_hash':raw_imhash, "filename":filename,'image_bytes':content}
     return ret_dict
     
-@router.post("/upload",tags=['upload_images'], response_model=ImageUploadResponse)
+#@router.post("/upload",tags=["upload_images"], response_model=ImageUploadResponse)
 async def save_posted_binimg(
     bin_image: UploadFile = File(...),
-    auth: Depends if bool(int(config.API_AUTH_CFG)) else None = Depends(get_current_user) if bool(int(config.API_AUTH_CFG)) else None, # Normally the syntax for requiring auth has a type check of 'Depends', ex. (auth : Depends = Depends(get_current_user)), the type anno needs to removed since it interfereres with setting auth to None 
-    user_uuid: Optional[str] = None,
-    save_image: Optional[bool]=False,    
+    keep_image:bool = False,
+    save_dir: str= None
 ) -> ImageUploadResponse:
     try:
-        not config.DEBUG or print(user_uuid)
-        not config.DEBUG or print(type(user_uuid))
-        filename = f"{config.IMG_SAVE_DIR if user_uuid is not None else config.IMG_CACHE_DIR}/{bin_image.filename}"
+        filename = f"{save_dir}/{bin_image.filename}" if save_dir is not None and os.path.isdir(save_dir) else f"{config.IMG_CACHE_DIR}/{bin_image.filename}"
         content = await bin_image.read()
         if len(content) > config.MAX_IMG_SIZE:
             raise HTTPException(
@@ -98,18 +74,18 @@ async def save_posted_binimg(
             ) 
         raw_imhash = sha256(content).hexdigest()
         img_size = len(content)
+        image_bytes = ImageHandler.dump_pil(Image.open(io.BytesIO(content)))
         status = 'Recieved sucessfully!'
-        if save_image:
-            print(f"Saved to {filename} ")
-            ImageHandler.dump_pil(Image.open(io.BytesIO(content)),img_path=filename)
+        if keep_image:
             status = 'Saved sucessfully!'
+            ImageHandler.dump_pil(Image.open(io.BytesIO(content)),img_path=filename )
+            
     except Exception as exp:
         status = f'Failed to parse image due to {exp}'
         raw_imhash = ''
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
             detail=f"Failed to parse image due to exception : {exp} ")
-    ret_dict = {'upload_status':status, 'image_size': img_size, 'image_hash':raw_imhash}
-    if config.RETURN_SAVEFP:
-         ret_dict["filename"] = filename if save_image else bin_image.filename
+    ret_dict = {'upload_status':status, 'image_size': img_size, 'image_hash':raw_imhash, 'filename': filename if keep_image else None ,'image_bytes':content}
+
     return ret_dict 

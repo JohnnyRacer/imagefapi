@@ -13,7 +13,8 @@ args = argspack.parse_args()
 abs_module_path = str(Path(config.__file__).parent.resolve()).split('/app/core')[:-1][0] #We'll use the empty configs module's file attribute to determine the absolute path of our module.
 jwt_key_rdir = config.JWT_KEY_DIR
 if jwt_key_rdir.startswith('*'):
-    os.environ["JWT_KEY_DIR"] = jwt_key_rdir.replace('*', abs_module_path) # Using local module directory if JWT key directory starts with astericks
+    jwt_kdir = jwt_key_rdir.replace('*', abs_module_path)
+    os.environ["JWT_KEY_DIR"] = jwt_kdir # Using local module directory if JWT key directory starts with astericks
     config.JWT_KEY_DIR = os.environ["JWT_KEY_DIR"] 
 
 

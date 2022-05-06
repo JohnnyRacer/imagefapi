@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from app.core import auth
-from app.routes import images
+from app.routes import display
 
 app = FastAPI()
 
@@ -16,4 +16,4 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
-app.include_router(images.router)
+app.include_router(display.router)
