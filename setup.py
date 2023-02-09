@@ -35,6 +35,6 @@ setup(
             'imagefapi = startup:main'
         ] 
     },
-    install_requires =['requests>=2.21.0', 'anyio==3.5.0', 'asgiref==3.5.0', 'bcrypt==3.2.0', 'cffi==1.15.0', 'click==8.0.4', 'fastapi==0.75.1', 'gunicorn==20.1.0', 'h11==0.13.0', 'idna==3.3', 'passlib==1.7.4', 'pycparser==2.21', 'pydantic==1.9.0', 'pyjwt==2.3.0', 'python-dotenv==0.20.0', 'python-multipart==0.0.5', 'six==1.16.0', 'sniffio==1.2.0', 'starlette==0.17.1', 'typing-extensions==4.1.1', 'uvicorn==0.17.6', 'scikit-image==0.19.2', 'redis==4.2.2', 'dhash==1.3'],
+    install_requires =['requests>=2.21.0', 'anyio==3.5.0', 'asgiref==3.5.0', 'bcrypt==3.2.0', 'cffi==1.15.0', 'click==8.0.4', 'fastapi==0.90.0', 'gunicorn==20.1.0', 'h11==0.13.0', 'idna==3.3', 'passlib==1.7.4', 'pycparser==2.21', 'pydantic==1.9.0', 'pyjwt==2.3.0', 'python-dotenv==0.20.0', 'python-multipart==0.0.5', 'six==1.16.0', 'sniffio==1.2.0', 'starlette==0.17.1', 'typing-extensions==4.1.1', 'uvicorn==0.17.6', 'scikit-image==0.19.2', 'redis==4.2.2', 'dhash==1.3'],
     python_requires=">=3.7",
 )
